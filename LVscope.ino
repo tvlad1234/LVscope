@@ -2,7 +2,9 @@
 ///Vlad Tomoiaga 2020
 int numSamples=0;
 byte sampmem[1030]={0};
+byte c;
 bool trig=0;
+volatile bool rise=0;
 long t, t0;
 byte trigLevel= 193;
 int sampFreq=1;
@@ -47,14 +49,22 @@ void setup()
 ISR(ADC_vect)
 {
   sampmem[numSamples] = ADCH;  // read 8 bit value from ADC
-    if(numSamples>0 && (trigLevel<=sampmem[numSamples] && trigLevel>=sampmem[numSamples-1]) && (sampmem[numSamples-1])<=sampmem[numSamples] )
-    {
       if(!trig){
-        numSamples=0;
-        trig=1;
+        
+        if(rise && numSamples>0 && (trigLevel<=sampmem[numSamples] && trigLevel>=sampmem[numSamples-1]) && (sampmem[numSamples-1])<=sampmem[numSamples])
+        {
+          trig=1;
+          numSamples=0;
+        }
+         else if(!rise &&numSamples>0 && (trigLevel>=sampmem[numSamples] && trigLevel<=sampmem[numSamples-1]) && (sampmem[numSamples-1])>=sampmem[numSamples] )
+        {
+          numSamples=0;
+          trig=1;
+        }
+          
       }
-    }
-  numSamples++;
+  
+    numSamples++;
 }
   
 void loop()
@@ -65,7 +75,7 @@ void loop()
     t = micros()-t0;  // calculate elapsed time
     float sampTime=t/numSamples;
     if(Serial.available()){ 
-      byte c=Serial.read();
+      c=Serial.read();
       if (c==123)
       {
         delay(2);
@@ -78,9 +88,16 @@ void loop()
       }
  
       else{
-  // Serial.print("Sampling frequency: ");
-   //Serial.print((float)1000000/t);
-   //Serial.println(" KHz");
+        if(c=='A')
+          rise=1;
+          else rise=0;
+    // Serial.print("Sampling frequency: ");
+    //Serial.print((float)1000000/t);
+    //Serial.println(" KHz");
+   if(trig)
+    Serial.println(1);
+    else Serial.println(0);
+    delay(2);
     for(int i=0;i<1024;i++)
     {
       Serial.println(5*sampmem[i]/255.0);
